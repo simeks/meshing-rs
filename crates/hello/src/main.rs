@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy::input::mouse::MouseMotion;
+use simdnoise::NoiseBuilder;
+use std::time::Instant;
 
 #[derive(Component)]
 struct CameraController {
@@ -23,6 +25,36 @@ fn main() {
         .add_system(keyboard_input)
         .add_system(mouse_input)
         .run();
+}
+
+fn generate_density(
+    width: usize,
+    height: usize,
+    depth: usize,
+) -> Vec<f32>
+{
+    // Can't use NoiseBuilder: https://github.com/verpeteren/rust-simd-noise/issues/38
+
+    let mut out = vec![0.0; width * height * depth];
+
+    for z in 0..depth {
+        for y in 0..height {
+            for x in 0..width {
+                let index = x + y * width + z * width * height;
+                out[index] = unsafe { simdnoise::scalar::fbm_3d(
+                    x as f32,
+                    y as f32,
+                    z as f32,
+                    0.15,
+                    4.5,
+                    7,
+                    1234
+                ) };
+            }
+        }
+    }
+
+    out
 }
 
 fn setup(mut commands: Commands) {
@@ -58,6 +90,12 @@ fn setup(mut commands: Commands) {
         },
         ..Default::default()
     });
+
+    let begin = Instant::now();
+    let _d = generate_density(64, 64, 64);
+    let end = Instant::now();
+    println!("Time: {:?}", end - begin);
+    //println!("d: {:?}", d.len());
 }
 
 fn keyboard_input(
