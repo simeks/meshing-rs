@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::input::mouse::MouseMotion;
-use simdnoise::NoiseBuilder;
+use bevy::render::mesh::VertexAttributeValues;
+use bevy::render::render_resource::PrimitiveTopology;
 use std::time::Instant;
 
 #[derive(Component)]
@@ -57,7 +58,11 @@ fn generate_density(
     out
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     let mut transform = Transform::from_xyz(0.0, 100.0, 0.0);
 
     let yaw: f32 = -135.0;
@@ -91,11 +96,45 @@ fn setup(mut commands: Commands) {
         ..Default::default()
     });
 
+    let width = 64;
+    let height = 64;
+    let depth = 64;
+
+    let density_map = generate_density(width, height, depth);
+
     let begin = Instant::now();
-    let _d = generate_density(64, 64, 64);
+    let vertex_data = dual_contouring::dual_contouring(
+        density_map,
+        width,
+        height,
+        depth
+    );
     let end = Instant::now();
-    println!("Time: {:?}", end - begin);
-    //println!("d: {:?}", d.len());
+    println!("DC Time: {:?}", end - begin);
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
+        VertexAttributeValues::Float32x3(vertex_data),
+    );
+
+    let mesh = meshes.add(mesh);
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            material: materials.add(
+                StandardMaterial {
+                    base_color: Color::rgb(0.8, 0.8, 0.8),
+                    reflectance: 0.0,
+                    metallic: 0.0,
+                    ..Default::default()
+                }
+            ),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
+            ..Default::default()
+        },
+    ));
+
 }
 
 fn keyboard_input(
