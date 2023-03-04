@@ -14,7 +14,7 @@ fn main() {
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
                 window: WindowDescriptor {
-                    title: "Alster".to_string(),
+                    title: "Hello".to_string(),
                     width: 1280.0,
                     height: 720.0,
                     ..Default::default()
