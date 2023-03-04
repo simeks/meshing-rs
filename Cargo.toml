@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/hello",
+    "crates/dual_contouring",
+]
