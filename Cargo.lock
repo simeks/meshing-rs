@@ -1250,6 +1250,9 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "dual_contouring"
 version = "0.1.0"
+dependencies = [
+ "glam 0.8.7",
+]
 
 [[package]]
 name = "encase"
@@ -1465,6 +1468,12 @@ dependencies = [
  "web-sys",
  "windows 0.43.0",
 ]
+
+[[package]]
+name = "glam"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b00572b5b10070ac495be20a25b4c8d379d20bcdec8ea0c870022b620ec79b20"
 
 [[package]]
 name = "glam"

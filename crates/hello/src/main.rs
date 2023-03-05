@@ -103,7 +103,7 @@ fn setup(
     let density_map = generate_density(width, height, depth);
 
     let begin = Instant::now();
-    let vertex_data = dual_contouring::dual_contouring(
+    let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
         density_map,
         width,
         height,
@@ -115,7 +115,11 @@ fn setup(
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
-        VertexAttributeValues::Float32x3(vertex_data),
+        VertexAttributeValues::Float32x3(mesh_positions),
+    );
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(mesh_normals),
     );
 
     let mesh = meshes.add(mesh);

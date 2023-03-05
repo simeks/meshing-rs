@@ -1,4 +1,4 @@
-
+use glam::Vec3;
 
 fn determinant(m: &[[f32; 3]; 3]) -> f32 {
     m[0][0] * m[1][1] * m[2][2] + m[0][1] * m[1][2] * m[2][0] + m[0][2] * m[1][0] * m[2][1]
@@ -52,7 +52,7 @@ pub fn dual_contouring(
     width: usize,
     height: usize,
     depth: usize
-) -> Vec<[f32;3]> {
+) -> (Vec<[f32;3]>, Vec<[f32;3]>) {
 
     let corners = [
         (0, 0, 0),
@@ -166,7 +166,9 @@ pub fn dual_contouring(
         }
     }
 
-    let mut mesh_vertices = Vec::<[f32;3]>::new();
+    let mut mesh_positions = Vec::<[f32;3]>::new();
+    let mut mesh_normals = Vec::<[f32;3]>::new();
+
     for z in 0..depth-2 {
         for y in 0..height-2 {
             for x in 0..width-2 {
@@ -175,7 +177,7 @@ pub fn dual_contouring(
                 })
                     .collect::<Vec<bool>>();
 
-                let v0 = vertices[index(x, y, z)];
+                let v0 = Vec3::from(vertices[index(x, y, z)]);
 
                 for face in 0..3 {
                     let e = far_edges[face];
@@ -185,44 +187,68 @@ pub fn dual_contouring(
 
                     let (v1, v2, v3) = match face {
                         0 => (
-                            vertices[index(x, y,   z+1)],
-                            vertices[index(x, y+1, z)],
-                            vertices[index(x, y+1, z+1)],
+                            Vec3::from(vertices[index(x, y,   z+1)]),
+                            Vec3::from(vertices[index(x, y+1, z)]),
+                            Vec3::from(vertices[index(x, y+1, z+1)]),
                         ),
                         1 => (
-                            vertices[index(x, y,   z+1)],
-                            vertices[index(x+1, y, z)],
-                            vertices[index(x+1, y, z+1)],
+                            Vec3::from(vertices[index(x, y,   z+1)]),
+                            Vec3::from(vertices[index(x+1, y, z)]),
+                            Vec3::from(vertices[index(x+1, y, z+1)]),
                         ),
                         2 => (
-                            vertices[index(x, y+1, z)],
-                            vertices[index(x+1, y, z)],
-                            vertices[index(x+1, y+1, z)],
+                            Vec3::from(vertices[index(x, y+1, z)]),
+                            Vec3::from(vertices[index(x+1, y, z)]),
+                            Vec3::from(vertices[index(x+1, y+1, z)]),
                         ),
                         _ => unreachable!(),
                     };
 
                     if inside[e.0] == (face == 1) {
-                        mesh_vertices.push(v0);
-                        mesh_vertices.push(v1);
-                        mesh_vertices.push(v3);
+                        mesh_positions.push(v0.into());
+                        mesh_positions.push(v1.into());
+                        mesh_positions.push(v3.into());
 
-                        mesh_vertices.push(v0);
-                        mesh_vertices.push(v3);
-                        mesh_vertices.push(v2);
+                        mesh_positions.push(v0.into());
+                        mesh_positions.push(v3.into());
+                        mesh_positions.push(v2.into());
+
+                        let normal = (v1 - v0).cross(v3 - v0).normalize();
+
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+
+                        let normal = (v3 - v0).cross(v2 - v0).normalize();
+
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
                     }
                     else {
-                        mesh_vertices.push(v0);
-                        mesh_vertices.push(v3);
-                        mesh_vertices.push(v1);
+                        mesh_positions.push(v0.into());
+                        mesh_positions.push(v3.into());
+                        mesh_positions.push(v1.into());
 
-                        mesh_vertices.push(v0);
-                        mesh_vertices.push(v2);
-                        mesh_vertices.push(v3);
+                        mesh_positions.push(v0.into());
+                        mesh_positions.push(v2.into());
+                        mesh_positions.push(v3.into());
+
+                        let normal = (v3 - v0).cross(v1 - v3).normalize();
+
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+
+                        let normal = (v2 - v0).cross(v3 - v0).normalize();
+
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
+                        mesh_normals.push(normal.into());
                     }
                 }
             }
         }
     }
-    mesh_vertices
+    (mesh_positions, mesh_normals)
 }
