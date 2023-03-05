@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Vec3, Vec4};
 
 fn determinant(m: &[[f32; 3]; 3]) -> f32 {
     m[0][0] * m[1][1] * m[2][2] + m[0][1] * m[1][2] * m[2][0] + m[0][2] * m[1][0] * m[2][1]
@@ -22,7 +22,8 @@ fn solve3x3(m: &[[f32; 3]; 3], b: &[f32; 3]) -> Option<[f32; 3]> {
     Some(x)
 }
 /// https://www.mattkeeter.com/projects/qef/
-fn qef_solve(candidates: &[[f32; 4]]) -> Option<[f32; 3]> {
+#[allow(non_snake_case)]
+fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
     let mut At_A = [[0.0_f32; 3];3];
     let mut At_b = [0.0_f32; 3];
 
@@ -89,8 +90,8 @@ pub fn dual_contouring(
                     continue;
                 }
 
-                let mut candidates = Vec::<[f32; 4]>::new();
-                let mut mass_point = (0.0, 0.0, 0.0);
+                let mut candidates = Vec::<Vec4>::new();
+                let mut mass_point = Vec3::new(0.0, 0.0, 0.0);
 
                 for dx in 0..2 {
                     for dy in 0..2 {
@@ -99,8 +100,10 @@ pub fn dual_contouring(
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
-                            let p = (dx as f32, dy as f32, t);
-                            candidates.push([p.0, p.1, p.2, 1.0]);
+                            let p = Vec3::new(dx as f32, dy as f32, t);
+                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
+                            candidates.push(Vec4::new(0.0, 0.0, 1.0, 0.5));
+                            mass_point += p;
                         }
                     }
                 }
@@ -112,11 +115,10 @@ pub fn dual_contouring(
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
-                            let p = (dx as f32, t, dz as f32);
-                            candidates.push([p.0, p.1, p.2, 1.0]);
-                            mass_point.0 += p.0;
-                            mass_point.1 += p.1;
-                            mass_point.2 += p.2;
+                            let p = Vec3::new(dx as f32, t, dz as f32);
+                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
+                            candidates.push(Vec4::new(0.0, 1.0, 0.0, 0.5));
+                            mass_point += p;
                         }
                     }
                 }
@@ -128,11 +130,11 @@ pub fn dual_contouring(
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
-                            let p = (t, dy as f32, dz as f32);
-                            candidates.push([p.0, p.1, p.2, 1.0]);
-                            mass_point.0 += p.0;
-                            mass_point.1 += p.1;
-                            mass_point.2 += p.2;
+                            let p = Vec3::new(t, dy as f32, dz as f32);
+                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
+                            candidates.push(Vec4::new(1.0, 0.0, 0.0, 0.5));
+                            
+                            mass_point += p;
                         }
                     }
                 }
@@ -142,10 +144,8 @@ pub fn dual_contouring(
                     continue;
                 }
 
-                mass_point.0 /= num_candidates as f32;
-                mass_point.1 /= num_candidates as f32;
-                mass_point.2 /= num_candidates as f32;
-
+                mass_point /= num_candidates as f32;
+                
                 // let bias_strength = 1.0;
                 // let n = (bias_strength, 0.0, 0.0);
 
