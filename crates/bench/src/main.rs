@@ -32,15 +32,15 @@ fn generate_density(
 
 fn main() {
 
-    let width = 64;
-    let height = 64;
-    let depth = 64;
+    let width = 128;
+    let height = 128;
+    let depth = 128;
 
     let (densities, normals) = generate_density(width, height, depth);
 
     let mut elapsed = vec![];
 
-    for _ in 0..10 {
+    for i in 0..100 {
         let begin = Instant::now();
         let _ = dual_contouring::dual_contouring(
             densities.clone(),
@@ -49,10 +49,16 @@ fn main() {
             height,
             depth
         );
-        elapsed.push(Instant::now() - begin);
+        if i > 0 {
+            elapsed.push(Instant::now() - begin);
+        }
     }
 
     let mean = elapsed.iter().sum::<Duration>() / elapsed.len() as u32;
+    let std = elapsed.iter().map(|x| {
+        let diff = x.as_millis() - mean.as_millis();
+        diff * diff
+    }).sum::<u128>() as f32 / elapsed.len() as f32;
 
-    println!("Time: {:?}", mean);
+    println!("Time: {:?} ms ({:?})", mean.as_millis(), std);
 }

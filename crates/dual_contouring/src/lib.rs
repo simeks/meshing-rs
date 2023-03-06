@@ -48,6 +48,11 @@ fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
     return solve3x3(&At_A, &At_b);
 }
 
+#[inline(always)]
+fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
+    x + y * width + z * width * height
+}
+
 pub fn dual_contouring(
     density: Vec<f32>,
     normal: Vec<Vec3>,
@@ -72,37 +77,42 @@ pub fn dual_contouring(
         (6, 7)
     ];
 
-    let index = |x: usize, y: usize, z: usize| {
-        x + y * width + z * width * height
-    };
+    // let index = |x: usize, y: usize, z: usize| {
+    //     x + y * width + z * width * height
+    // };
 
     let mut vertices = vec![[0.0_f32; 3]; width * height * depth];
+    // Reuse the same buffer for each cell
+    let mut candidates = Vec::<Vec4>::new();
 
     for z in 0..depth-1 {
         for y in 0..height-1 {
             for x in 0..width-1 {
-                let inside = corners.iter().map(|cornder| {
-                    density[index(x + cornder.0, y + cornder.1, z + cornder.2)] <= 0.0
-                })
-                    .collect::<Vec<bool>>();
+                let mut inside = [false; 8];
+                let mut num_inside = 0;
+                for i in 0..8 {
+                    inside[i] = density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0;
+                    if inside[i] {
+                        num_inside += 1;
+                    }
+                }
 
-                let num_inside = inside.iter().filter(|&x| *x).count();
                 if num_inside == 0 || num_inside == 8 {
                     continue;
                 }
 
-                let mut candidates = Vec::<Vec4>::new();
                 let mut mass_point = Vec3::new(0.0, 0.0, 0.0);
+                candidates.clear();
 
-                for dx in 0..2 {
-                    for dy in 0..2 {
-                        let v0 = density[index(x + dx, y + dy, z)];
-                        let v1 = density[index(x + dx, y + dy, z + 1)];
+                for dy in 0..2 {
+                    for dx in 0..2 {
+                        let v0 = density[index(x + dx, y + dy, z, width, height)];
+                        let v1 = density[index(x + dx, y + dy, z + 1, width, height)];
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(dx as f32, dy as f32, t);
-                            let n = normal[index(x + dx, y + dy, z)];
+                            let n = normal[index(x + dx, y + dy, z, width, height)];
 
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
@@ -110,15 +120,15 @@ pub fn dual_contouring(
                     }
                 }
 
-                for dx in 0..2 {
-                    for dz in 0..2 {
-                        let v0 = density[index(x + dx, y, z + dz)];
-                        let v1 = density[index(x + dx, y + 1, z + dz)];
+                for dz in 0..2 {
+                    for dx in 0..2 {
+                        let v0 = density[index(x + dx, y, z + dz, width, height)];
+                        let v1 = density[index(x + dx, y + 1, z + dz, width, height)];
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(dx as f32, t, dz as f32);
-                            let n = normal[index(x + dx, y, z + dz)];
+                            let n = normal[index(x + dx, y, z + dz, width, height)];
 
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
@@ -126,15 +136,15 @@ pub fn dual_contouring(
                     }
                 }
 
-                for dy in 0..2 {
-                    for dz in 0..2 {
-                        let v0 = density[index(x, y + dy, z + dz)];
-                        let v1 = density[index(x + 1, y + dy, z + dz)];
+                for dz in 0..2 {
+                    for dy in 0..2 {
+                        let v0 = density[index(x, y + dy, z + dz, width, height)];
+                        let v1 = density[index(x + 1, y + dy, z + dz, width, height)];
 
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(t, dy as f32, dz as f32);
-                            let n = normal[index(x, y + dy, z + dz)];
+                            let n = normal[index(x, y + dy, z + dz, width, height)];
 
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
@@ -165,7 +175,7 @@ pub fn dual_contouring(
                     [0.5, 0.5, 0.5]
                 };
 
-                vertices[index(x, y, z)] = [
+                vertices[index(x, y, z, width, height)] = [
                     (x as f32 + vertex[0]) / width as f32,
                     (y as f32 + vertex[1]) / height as f32,
                     (z as f32 + vertex[2]) / depth as f32,
@@ -180,12 +190,12 @@ pub fn dual_contouring(
     for z in 0..depth-2 {
         for y in 0..height-2 {
             for x in 0..width-2 {
-                let inside = corners.iter().map(|corner| {
-                    density[index(x + corner.0, y + corner.1, z + corner.2)] <= 0.0
-                })
-                    .collect::<Vec<bool>>();
+                let mut inside = [false; 8];
+                for i in 0..8 {
+                    inside[i] = density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0;
+                }
 
-                let v0 = Vec3::from(vertices[index(x, y, z)]);
+                let v0 = Vec3::from(vertices[index(x, y, z, width, height)]);
 
                 for face in 0..3 {
                     let e = far_edges[face];
@@ -195,19 +205,19 @@ pub fn dual_contouring(
 
                     let (v1, v2, v3) = match face {
                         0 => (
-                            Vec3::from(vertices[index(x, y,   z+1)]),
-                            Vec3::from(vertices[index(x, y+1, z)]),
-                            Vec3::from(vertices[index(x, y+1, z+1)]),
+                            Vec3::from(vertices[index(x, y,   z+1, width, height)]),
+                            Vec3::from(vertices[index(x, y+1, z, width, height)]),
+                            Vec3::from(vertices[index(x, y+1, z+1, width, height)]),
                         ),
                         1 => (
-                            Vec3::from(vertices[index(x, y,   z+1)]),
-                            Vec3::from(vertices[index(x+1, y, z)]),
-                            Vec3::from(vertices[index(x+1, y, z+1)]),
+                            Vec3::from(vertices[index(x, y,   z+1, width, height)]),
+                            Vec3::from(vertices[index(x+1, y, z, width, height)]),
+                            Vec3::from(vertices[index(x+1, y, z+1, width, height)]),
                         ),
                         2 => (
-                            Vec3::from(vertices[index(x, y+1, z)]),
-                            Vec3::from(vertices[index(x+1, y, z)]),
-                            Vec3::from(vertices[index(x+1, y+1, z)]),
+                            Vec3::from(vertices[index(x, y+1, z, width, height)]),
+                            Vec3::from(vertices[index(x+1, y, z, width, height)]),
+                            Vec3::from(vertices[index(x+1, y+1, z, width, height)]),
                         ),
                         _ => unreachable!(),
                     };
