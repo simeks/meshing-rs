@@ -104,7 +104,6 @@ pub fn dual_contouring(
                             let p = Vec3::new(dx as f32, dy as f32, t);
                             let n = normal[index(x + dx, y + dy, z)];
 
-                            //candidates.push(Vec4::new(0.0, 0.0, 1.0, 0.5));
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }
@@ -121,7 +120,6 @@ pub fn dual_contouring(
                             let p = Vec3::new(dx as f32, t, dz as f32);
                             let n = normal[index(x + dx, y, z + dz)];
 
-                            //candidates.push(Vec4::new(0.0, 1.0, 0.0, 0.5));
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }
@@ -138,7 +136,6 @@ pub fn dual_contouring(
                             let p = Vec3::new(t, dy as f32, dz as f32);
                             let n = normal[index(x, y + dy, z + dz)];
 
-                            //candidates.push(Vec4::new(1.0, 0.0, 0.0, 0.5));
                             candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }

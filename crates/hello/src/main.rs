@@ -40,66 +40,69 @@ fn generate_density(
     let mut densities = vec![0.0; width * height * depth];
     let mut normals = vec![glam::Vec3::ZERO; width * height * depth];
 
+    // for z in 0..depth {
+    //     for y in 0..height {
+    //         for x in 0..width {
+    //             let index = x + y * width + z * width * height;
+    //             let d = unsafe { simdnoise::scalar::fbm_3d(
+    //                 x as f32 / 32.0,
+    //                 y as f32 / 32.0,
+    //                 z as f32 / 32.0,
+    //                 0.1,
+    //                 2.0,
+    //                 5,
+    //                 1234
+    //             ) };
+
+    //             densities[index] = d;
+    //             normals[index] = glam::Vec3::new(
+    //                 unsafe { simdnoise::scalar::fbm_3d(
+    //                     x as f32 / 32.0 + 0.1,
+    //                     y as f32 / 32.0,
+    //                     z as f32 / 32.0,
+    //                     0.1,
+    //                     2.0,
+    //                     5,
+    //                     1234
+    //                 ) } - d,
+    //                 unsafe { simdnoise::scalar::fbm_3d(
+    //                     x as f32 / 32.0,
+    //                     y as f32 / 32.0 + 0.1,
+    //                     z as f32 / 32.0,
+    //                     0.1,
+    //                     2.0,
+    //                     5,
+    //                     1234
+    //                 ) } - d,
+    //                 unsafe { simdnoise::scalar::fbm_3d(
+    //                     x as f32 / 32.0,
+    //                     y as f32 / 32.0,
+    //                     z as f32 / 32.0 + 0.1,
+    //                     0.1,
+    //                     2.0,
+    //                     5,
+    //                     1234
+    //                 ) } - d,
+    //             ).normalize();
+    //         }
+    //     }
+    // }
+
+
     for z in 0..depth {
         for y in 0..height {
             for x in 0..width {
-                let index = x + y * width + z * width * height;
-                let d = unsafe { simdnoise::scalar::fbm_3d(
-                    x as f32 / 32.0,
-                    y as f32 / 32.0,
-                    z as f32 / 32.0,
-                    0.1,
-                    2.0,
-                    5,
-                    1234
-                ) };
-
-                densities[index] = d;
-                normals[index] = glam::Vec3::new(
-                    unsafe { simdnoise::scalar::fbm_3d(
-                        x as f32 / 32.0 + 0.1,
-                        y as f32 / 32.0,
-                        z as f32 / 32.0,
-                        0.1,
-                        2.0,
-                        5,
-                        1234
-                    ) } - d,
-                    unsafe { simdnoise::scalar::fbm_3d(
-                        x as f32 / 32.0,
-                        y as f32 / 32.0 + 0.1,
-                        z as f32 / 32.0,
-                        0.1,
-                        2.0,
-                        5,
-                        1234
-                    ) } - d,
-                    unsafe { simdnoise::scalar::fbm_3d(
-                        x as f32 / 32.0,
-                        y as f32 / 32.0,
-                        z as f32 / 32.0 + 0.1,
-                        0.1,
-                        2.0,
-                        5,
-                        1234
-                    ) } - d,
+                densities[x + y * width + z * width * height] = glam::Vec3::new(
+                    x as f32 - width as f32 / 2.0,
+                    y as f32 - height as f32 / 2.0,
+                    z as f32 - depth as f32 / 2.0,
+                ).length() - 32.0;
+                normals[x + y * width + z * width * height] = glam::Vec3::new(
+                    x as f32, y as f32, z as f32
                 ).normalize();
             }
         }
     }
-
-
-    // for z in 0..depth {
-    //     for y in 0..height {
-    //         for x in 0..width {
-    //             out[x + y * width + z * width * height] = Vec3::new(
-    //                 x as f32 - width as f32 / 2.0,
-    //                 y as f32 - height as f32 / 2.0,
-    //                 z as f32 - depth as f32 / 2.0,
-    //             ).length() - 16.0;
-    //         }
-    //     }
-    // }
 
     (densities, normals)
 }
@@ -142,9 +145,9 @@ fn setup(
         ..Default::default()
     });
 
-    let width = 64;
-    let height = 64;
-    let depth = 64;
+    let width = 128;
+    let height = 128;
+    let depth = 128;
 
     let (densities, normals) = generate_density(width, height, depth);
 
