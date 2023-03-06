@@ -50,6 +50,7 @@ fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
 
 pub fn dual_contouring(
     density: Vec<f32>,
+    normal: Vec<Vec3>,
     width: usize,
     height: usize,
     depth: usize
@@ -101,8 +102,10 @@ pub fn dual_contouring(
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(dx as f32, dy as f32, t);
-                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
-                            candidates.push(Vec4::new(0.0, 0.0, 1.0, 0.5));
+                            let n = normal[index(x + dx, y + dy, z)];
+
+                            //candidates.push(Vec4::new(0.0, 0.0, 1.0, 0.5));
+                            candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }
                     }
@@ -116,8 +119,10 @@ pub fn dual_contouring(
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(dx as f32, t, dz as f32);
-                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
-                            candidates.push(Vec4::new(0.0, 1.0, 0.0, 0.5));
+                            let n = normal[index(x + dx, y, z + dz)];
+
+                            //candidates.push(Vec4::new(0.0, 1.0, 0.0, 0.5));
+                            candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }
                     }
@@ -131,9 +136,10 @@ pub fn dual_contouring(
                         if (v0 > 0.0) != (v1 > 0.0) {
                             let t = v0 / (v0 - v1);
                             let p = Vec3::new(t, dy as f32, dz as f32);
-                            //candidates.push(Vec4::new(p.x(), p.y(), p.z(), 1.0));
-                            candidates.push(Vec4::new(1.0, 0.0, 0.0, 0.5));
-                            
+                            let n = normal[index(x, y + dy, z + dz)];
+
+                            //candidates.push(Vec4::new(1.0, 0.0, 0.0, 0.5));
+                            candidates.push(Vec4::new(n.x, n.y, n.z, p.dot(n)));
                             mass_point += p;
                         }
                     }
@@ -145,10 +151,15 @@ pub fn dual_contouring(
                 }
 
                 mass_point /= num_candidates as f32;
-                
-                // let bias_strength = 1.0;
-                // let n = (bias_strength, 0.0, 0.0);
 
+                let bias_strength = 1.0;
+                let n = Vec3::new(bias_strength, 0.0, 0.0);
+                candidates.push(Vec4::new(n.x, n.y, n.z, mass_point.dot(n)));
+                let n = Vec3::new(0.0, bias_strength, 0.0);
+                candidates.push(Vec4::new(n.x, n.y, n.z, mass_point.dot(n)));
+                let n = Vec3::new(0.0, 0.0, bias_strength);
+                candidates.push(Vec4::new(n.x, n.y, n.z, mass_point.dot(n)));
+                
                 let vertex = if let Some(vertex) = qef_solve(&candidates) {[
                     vertex[0].min(1.0).max(0.0),
                     vertex[1].min(1.0).max(0.0),

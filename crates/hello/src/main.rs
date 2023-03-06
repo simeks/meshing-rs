@@ -28,48 +28,80 @@ fn main() {
         .run();
 }
 
+/// Returns density and normals
 fn generate_density(
     width: usize,
     height: usize,
     depth: usize,
-) -> Vec<f32>
+) -> (Vec<f32>, Vec<glam::Vec3>)
 {
     // Can't use NoiseBuilder: https://github.com/verpeteren/rust-simd-noise/issues/38
 
-    let mut out = vec![0.0; width * height * depth];
-
-    // for z in 0..depth {
-    //     for y in 0..height {
-    //         for x in 0..width {
-    //             let index = x + y * width + z * width * height;
-    //             let d = unsafe { simdnoise::scalar::fbm_3d(
-    //                 10.0 * x as f32,
-    //                 10.0 * y as f32,
-    //                 10.0 * z as f32,
-    //                 0.15,
-    //                 4.5,
-    //                 7,
-    //                 1234
-    //             ) };
-    //             out[index] = d;
-    //         }
-    //     }
-    // }
-
+    let mut densities = vec![0.0; width * height * depth];
+    let mut normals = vec![glam::Vec3::ZERO; width * height * depth];
 
     for z in 0..depth {
         for y in 0..height {
             for x in 0..width {
-                out[x + y * width + z * width * height] = Vec3::new(
-                    x as f32 - width as f32 / 2.0,
-                    y as f32 - height as f32 / 2.0,
-                    z as f32 - depth as f32 / 2.0,
-                ).length() - 16.0;
+                let index = x + y * width + z * width * height;
+                let d = unsafe { simdnoise::scalar::fbm_3d(
+                    x as f32 / 32.0,
+                    y as f32 / 32.0,
+                    z as f32 / 32.0,
+                    0.1,
+                    2.0,
+                    5,
+                    1234
+                ) };
+
+                densities[index] = d;
+                normals[index] = glam::Vec3::new(
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0 + 0.1,
+                        y as f32 / 32.0,
+                        z as f32 / 32.0,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0,
+                        y as f32 / 32.0 + 0.1,
+                        z as f32 / 32.0,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0,
+                        y as f32 / 32.0,
+                        z as f32 / 32.0 + 0.1,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
+                ).normalize();
             }
         }
     }
 
-    out
+
+    // for z in 0..depth {
+    //     for y in 0..height {
+    //         for x in 0..width {
+    //             out[x + y * width + z * width * height] = Vec3::new(
+    //                 x as f32 - width as f32 / 2.0,
+    //                 y as f32 - height as f32 / 2.0,
+    //                 z as f32 - depth as f32 / 2.0,
+    //             ).length() - 16.0;
+    //         }
+    //     }
+    // }
+
+    (densities, normals)
 }
 
 fn setup(
@@ -114,11 +146,12 @@ fn setup(
     let height = 64;
     let depth = 64;
 
-    let density_map = generate_density(width, height, depth);
+    let (densities, normals) = generate_density(width, height, depth);
 
     let begin = Instant::now();
     let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
-        density_map,
+        densities,
+        normals,
         width,
         height,
         depth

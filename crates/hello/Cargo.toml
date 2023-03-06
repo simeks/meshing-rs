@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 bevy = "0.9"
 dual_contouring = { path = "../dual_contouring" }
+glam = { version = "0.23" }
 simdnoise = "3.1.6"
