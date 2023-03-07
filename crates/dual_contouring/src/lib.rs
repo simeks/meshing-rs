@@ -48,7 +48,6 @@ fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
     return solve3x3(&At_A, &At_b);
 }
 
-#[inline(always)]
 fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
     x + y * width + z * width * height
 }
@@ -81,7 +80,7 @@ pub fn dual_contouring(
     //     x + y * width + z * width * height
     // };
 
-    let mut vertices = vec![[0.0_f32; 3]; width * height * depth];
+    let mut vertices = vec![Vec3::ZERO; width * height * depth];
     // Reuse the same buffer for each cell
     let mut candidates = Vec::<Vec4>::new();
 
@@ -175,11 +174,11 @@ pub fn dual_contouring(
                     [0.5, 0.5, 0.5]
                 };
 
-                vertices[index(x, y, z, width, height)] = [
+                vertices[index(x, y, z, width, height)] = Vec3::new(
                     (x as f32 + vertex[0]) / width as f32,
                     (y as f32 + vertex[1]) / height as f32,
                     (z as f32 + vertex[2]) / depth as f32,
-                ];
+                );
             }
         }
     }
@@ -195,29 +194,28 @@ pub fn dual_contouring(
                     inside[i] = density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0;
                 }
 
-                let v0 = Vec3::from(vertices[index(x, y, z, width, height)]);
-
                 for face in 0..3 {
                     let e = far_edges[face];
                     if inside[e.0] == inside[e.1] {
                         continue;
                     }
 
+                    let v0 = Vec3::from(vertices[index(x, y, z, width, height)]);
                     let (v1, v2, v3) = match face {
                         0 => (
-                            Vec3::from(vertices[index(x, y,   z+1, width, height)]),
-                            Vec3::from(vertices[index(x, y+1, z, width, height)]),
-                            Vec3::from(vertices[index(x, y+1, z+1, width, height)]),
+                            vertices[index(x, y,   z+1, width, height)],
+                            vertices[index(x, y+1, z, width, height)],
+                            vertices[index(x, y+1, z+1, width, height)],
                         ),
                         1 => (
-                            Vec3::from(vertices[index(x, y,   z+1, width, height)]),
-                            Vec3::from(vertices[index(x+1, y, z, width, height)]),
-                            Vec3::from(vertices[index(x+1, y, z+1, width, height)]),
+                            vertices[index(x, y,   z+1, width, height)],
+                            vertices[index(x+1, y, z, width, height)],
+                            vertices[index(x+1, y, z+1, width, height)],
                         ),
                         2 => (
-                            Vec3::from(vertices[index(x, y+1, z, width, height)]),
-                            Vec3::from(vertices[index(x+1, y, z, width, height)]),
-                            Vec3::from(vertices[index(x+1, y+1, z, width, height)]),
+                            vertices[index(x, y+1, z, width, height)],
+                            vertices[index(x+1, y, z, width, height)],
+                            vertices[index(x+1, y+1, z, width, height)],
                         ),
                         _ => unreachable!(),
                     };
