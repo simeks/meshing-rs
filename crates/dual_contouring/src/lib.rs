@@ -83,11 +83,9 @@ pub fn dual_contouring(
     for z in 0..depth-1 {
         for y in 0..height-1 {
             for x in 0..width-1 {
-                let mut inside = [false; 8];
                 let mut num_inside = 0;
                 for i in 0..8 {
-                    inside[i] = density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0;
-                    if inside[i] {
+                    if density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0 {
                         num_inside += 1;
                     }
                 }
