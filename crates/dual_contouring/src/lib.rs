@@ -52,6 +52,7 @@ fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
     x + y * width + z * width * height
 }
 
+/// Implements J Tao, et al., Dual Contouring of Hermite Data
 pub fn dual_contouring(
     density: Vec<f32>,
     normal: Vec<Vec3>,
@@ -59,7 +60,6 @@ pub fn dual_contouring(
     height: usize,
     depth: usize
 ) -> (Vec<[f32;3]>, Vec<[f32;3]>) {
-
     let corners = [
         (0, 0, 0),
         (0, 0, 1),
@@ -75,10 +75,6 @@ pub fn dual_contouring(
         (5, 7),
         (6, 7)
     ];
-
-    // let index = |x: usize, y: usize, z: usize| {
-    //     x + y * width + z * width * height
-    // };
 
     let mut vertices = vec![Vec3::ZERO; width * height * depth];
     // Reuse the same buffer for each cell
@@ -171,6 +167,7 @@ pub fn dual_contouring(
                     vertex[1].min(1.0).max(0.0),
                     vertex[2].min(1.0).max(0.0),
                 ]} else {
+                    // If the QEF solver fails, use the center
                     [0.5, 0.5, 0.5]
                 };
 
