@@ -304,35 +304,35 @@ fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
 }
 
 pub fn marching_cubes(
-    density: Vec<f32>,
+    density: &Vec<f32>,
     width: usize,
     height: usize,
     depth: usize,
 ) -> (Vec::<[f32;3]>, Vec::<[f32;3]>) {
     let corners = [
-        (0, 0, 0),
         (0, 0, 1),
-        (0, 1, 0),
-        (0, 1, 1),
-        (1, 0, 0),
         (1, 0, 1),
-        (1, 1, 0),
+        (1, 0, 0),
+        (0, 0, 0),
+        (0, 1, 1),
         (1, 1, 1),
+        (1, 1, 0),
+        (0, 1, 0),
     ];
 
     let mut mesh_vertices = Vec::<[f32;3]>::new();
     let mut mesh_normals = Vec::<[f32;3]>::new();
 
-    for z in 0..depth {
-        for y in 0..height {
-            for x in 0..width {
+    for z in 0..depth-1 {
+        for y in 0..height-1 {
+            for x in 0..width-1 {
                 let mut corner_densities = [0.0_f32; 8];
                 let mut cube_idx = 0_u32;
                 for c in 0..8 {
                     let corner = corners[c];
                     let d = density[index(x + corner.0, y + corner.1, z + corner.2, width, height)];
                     corner_densities[c] = d;
-                    cube_idx |= ((d > 0.0) as u32) << c;
+                    cube_idx |= ((d <= 0.0) as u32) << c;
                 }
 
                 if cube_idx == 0 || cube_idx == 255 {
@@ -389,10 +389,15 @@ pub fn marching_cubes(
                 ];
 
                 let mut tri_idx: usize = 0;
+                let scale = Vec3::new(
+                    1.0 / width as f32,
+                    1.0 / height as f32,
+                    1.0 / depth as f32
+                );
                 loop {
-                    let v0 = vertices[TRI_TABLE[cube_idx as usize][tri_idx] as usize];
-                    let v1 = vertices[TRI_TABLE[cube_idx as usize][tri_idx + 1] as usize];
-                    let v2 = vertices[TRI_TABLE[cube_idx as usize][tri_idx + 2] as usize];
+                    let v0 = vertices[TRI_TABLE[cube_idx as usize][tri_idx] as usize] * scale;
+                    let v1 = vertices[TRI_TABLE[cube_idx as usize][tri_idx + 1] as usize] * scale;
+                    let v2 = vertices[TRI_TABLE[cube_idx as usize][tri_idx + 2] as usize] * scale;
 
                     mesh_vertices.push(v0.into());
                     mesh_vertices.push(v1.into());

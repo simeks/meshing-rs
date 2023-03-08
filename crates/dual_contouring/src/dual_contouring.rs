@@ -54,8 +54,8 @@ fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
 
 /// Implements J Tao, et al., Dual Contouring of Hermite Data
 pub fn dual_contouring(
-    density: Vec<f32>,
-    normal: Vec<Vec3>,
+    density: &Vec<f32>,
+    normal: &Vec<Vec3>,
     width: usize,
     height: usize,
     depth: usize

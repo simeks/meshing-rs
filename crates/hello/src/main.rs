@@ -152,13 +152,19 @@ fn setup(
     let (densities, normals) = generate_density(width, height, depth);
 
     let begin = Instant::now();
-    let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
-        densities,
-        normals,
+    let (mesh_positions, mesh_normals) = dual_contouring::marching_cubes(
+        &densities,
         width,
         height,
         depth
     );
+    // let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
+    //     densities,
+    //     normals,
+    //     width,
+    //     height,
+    //     depth
+    // );
     let end = Instant::now();
     println!("DC Time: {:?}", end - begin);
 
