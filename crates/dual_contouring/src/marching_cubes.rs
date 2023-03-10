@@ -332,7 +332,7 @@ pub fn marching_cubes(
                     let corner = corners[c];
                     let d = density[index(x + corner.0, y + corner.1, z + corner.2, width, height)];
                     corner_densities[c] = d;
-                    cube_idx |= ((d <= 0.0) as u32) << c;
+                    cube_idx |= ((d > 0.0) as u32) << c;
                 }
 
                 if cube_idx == 0 || cube_idx == 255 {
