@@ -45,69 +45,69 @@ fn generate_density(
     let mut densities = vec![0.0; width * height * depth];
     let mut normals = vec![glam::Vec3::ZERO; width * height * depth];
 
-    // for z in 0..depth {
-    //     for y in 0..height {
-    //         for x in 0..width {
-    //             let index = x + y * width + z * width * height;
-    //             let d = unsafe { simdnoise::scalar::fbm_3d(
-    //                 x as f32 / 32.0,
-    //                 y as f32 / 32.0,
-    //                 z as f32 / 32.0,
-    //                 0.1,
-    //                 2.0,
-    //                 5,
-    //                 1234
-    //             ) };
-
-    //             densities[index] = d;
-    //             normals[index] = glam::Vec3::new(
-    //                 unsafe { simdnoise::scalar::fbm_3d(
-    //                     x as f32 / 32.0 + 0.1,
-    //                     y as f32 / 32.0,
-    //                     z as f32 / 32.0,
-    //                     0.1,
-    //                     2.0,
-    //                     5,
-    //                     1234
-    //                 ) } - d,
-    //                 unsafe { simdnoise::scalar::fbm_3d(
-    //                     x as f32 / 32.0,
-    //                     y as f32 / 32.0 + 0.1,
-    //                     z as f32 / 32.0,
-    //                     0.1,
-    //                     2.0,
-    //                     5,
-    //                     1234
-    //                 ) } - d,
-    //                 unsafe { simdnoise::scalar::fbm_3d(
-    //                     x as f32 / 32.0,
-    //                     y as f32 / 32.0,
-    //                     z as f32 / 32.0 + 0.1,
-    //                     0.1,
-    //                     2.0,
-    //                     5,
-    //                     1234
-    //                 ) } - d,
-    //             ).normalize();
-    //         }
-    //     }
-    // }
-
-
     for z in 0..depth {
         for y in 0..height {
             for x in 0..width {
-                densities[x + y * width + z * width * height] = glam::Vec3::new(
-                    x as f32 - width as f32 / 2.0,
-                    y as f32 - height as f32 / 2.0,
-                    z as f32 - depth as f32 / 2.0,
-                ).length() - 32.0;
-                normals[x + y * width + z * width * height] = glam::Vec3::new(
-                    x as f32, y as f32, z as f32
+                let index = x + y * width + z * width * height;
+                let d = unsafe { simdnoise::scalar::fbm_3d(
+                    x as f32 / 32.0,
+                    y as f32 / 32.0,
+                    z as f32 / 32.0,
+                    0.1,
+                    2.0,
+                    5,
+                    1234
+                ) };
+
+                densities[index] = d;
+                normals[index] = glam::Vec3::new(
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0 + 0.1,
+                        y as f32 / 32.0,
+                        z as f32 / 32.0,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0,
+                        y as f32 / 32.0 + 0.1,
+                        z as f32 / 32.0,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
+                    unsafe { simdnoise::scalar::fbm_3d(
+                        x as f32 / 32.0,
+                        y as f32 / 32.0,
+                        z as f32 / 32.0 + 0.1,
+                        0.1,
+                        2.0,
+                        5,
+                        1234
+                    ) } - d,
                 ).normalize();
             }
         }
     }
+
+
+    // for z in 0..depth {
+    //     for y in 0..height {
+    //         for x in 0..width {
+    //             densities[x + y * width + z * width * height] = glam::Vec3::new(
+    //                 x as f32 - width as f32 / 2.0,
+    //                 y as f32 - height as f32 / 2.0,
+    //                 z as f32 - depth as f32 / 2.0,
+    //             ).length() - 32.0;
+    //             normals[x + y * width + z * width * height] = glam::Vec3::new(
+    //                 x as f32, y as f32, z as f32
+    //             ).normalize();
+    //         }
+    //     }
+    // }
 
     (densities, normals)
 }
@@ -181,7 +181,12 @@ fn setup(
     commands.spawn((
         PbrBundle {
             mesh,
-            material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(0.8, 0.0, 0.0),
+                metallic: 0.0,
+                reflectance: 0.0,
+                ..default()
+            }),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
         },
@@ -215,7 +220,12 @@ fn setup(
         PbrBundle {
             mesh,
             visibility: Visibility { is_visible: false },
-            material: materials.add(Color::rgb(0.0, 0.8, 0.0).into()),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(0.0, 0.8, 0.0),
+                metallic: 0.0,
+                reflectance: 0.0,
+                ..default()
+            }),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
         },
@@ -265,7 +275,7 @@ fn keyboard_input(
 
         let mut velocity = 0.1;
         if keyboard_input.pressed(KeyCode::LShift) {
-            velocity = 10.0;
+            velocity = 5.0;
         }
 
         direction = direction.normalize();
