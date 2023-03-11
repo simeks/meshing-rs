@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::input::mouse::MouseMotion;
+use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 use bevy::render::mesh::VertexAttributeValues;
 use bevy::render::render_resource::PrimitiveTopology;
 use std::time::Instant;
@@ -9,6 +10,9 @@ struct CameraController {
     yaw: f32,
     pitch: f32,
 }
+
+#[derive(Component)]
+struct GeneratedMesh;
 
 fn main() {
     App::new()
@@ -22,6 +26,7 @@ fn main() {
                 },
                 ..default()
             }))
+        .add_plugin(WireframePlugin)
         .add_startup_system(setup)
         .add_system(keyboard_input)
         .add_system(mouse_input)
@@ -152,19 +157,13 @@ fn setup(
     let (densities, normals) = generate_density(width, height, depth);
 
     let begin = Instant::now();
-    let (mesh_positions, mesh_normals) = dual_contouring::marching_cubes(
+    let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
         &densities,
+        &normals,
         width,
         height,
         depth
     );
-    // let (mesh_positions, mesh_normals) = dual_contouring::dual_contouring(
-    //     densities,
-    //     normals,
-    //     width,
-    //     height,
-    //     depth
-    // );
     let end = Instant::now();
     println!("DC Time: {:?}", end - begin);
 
@@ -182,24 +181,53 @@ fn setup(
     commands.spawn((
         PbrBundle {
             mesh,
-            material: materials.add(
-                StandardMaterial {
-                    base_color: Color::rgb(0.8, 0.8, 0.8),
-                    reflectance: 0.0,
-                    metallic: 0.0,
-                    ..Default::default()
-                }
-            ),
+            material: materials.add(Color::rgb(0.8, 0.0, 0.0).into()),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
         },
-    ));
+    ))
+        .insert(Wireframe)
+        .insert(GeneratedMesh);
 
+
+    let begin = Instant::now();
+    let (mesh_positions, mesh_normals) = dual_contouring::marching_cubes(
+        &densities,
+        width,
+        height,
+        depth
+    );
+    let end = Instant::now();
+    println!("MC Time: {:?}", end - begin);
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
+        VertexAttributeValues::Float32x3(mesh_positions),
+    );
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(mesh_normals),
+    );
+
+    let mesh = meshes.add(mesh);
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            visibility: Visibility { is_visible: false },
+            material: materials.add(Color::rgb(0.0, 0.8, 0.0).into()),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
+            ..Default::default()
+        },
+    ))
+        .insert(Wireframe)
+        .insert(GeneratedMesh);
 }
 
 fn keyboard_input(
     keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<(&mut Transform, &CameraController)>,
+    mut query2: Query<&mut Visibility, With<GeneratedMesh>>,
 ) {
     for (mut transform, _) in query.iter_mut() {
 
@@ -229,6 +257,12 @@ fn keyboard_input(
         if keyboard_input.pressed(KeyCode::E) {
             direction += up;
         }
+        if keyboard_input.just_pressed(KeyCode::Tab) {
+            for mut visibility in query2.iter_mut() {
+                visibility.is_visible = !visibility.is_visible;
+            }
+        }
+
         let mut velocity = 0.1;
         if keyboard_input.pressed(KeyCode::LShift) {
             velocity = 10.0;
