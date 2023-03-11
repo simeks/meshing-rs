@@ -1,18 +1,24 @@
+mod input;
+
 use bevy::prelude::*;
-use bevy::input::mouse::MouseMotion;
 use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 use bevy::render::mesh::VertexAttributeValues;
 use bevy::render::render_resource::PrimitiveTopology;
 use std::time::Instant;
 
+// Size of isosurface field
+const FIELD_WIDTH: usize = 128;
+const FIELD_HEIGHT: usize = 128;
+const FIELD_DEPTH: usize = 128;
+
 #[derive(Component)]
-struct CameraController {
+pub struct CameraController {
     yaw: f32,
     pitch: f32,
 }
 
 #[derive(Component)]
-struct GeneratedMesh;
+pub struct GeneratedMesh;
 
 fn main() {
     App::new()
@@ -28,8 +34,8 @@ fn main() {
             }))
         .add_plugin(WireframePlugin)
         .add_startup_system(setup)
-        .add_system(keyboard_input)
-        .add_system(mouse_input)
+        .add_system(input::keyboard_input)
+        .add_system(input::mouse_input)
         .run();
 }
 
@@ -92,26 +98,23 @@ fn generate_density(
             }
         }
     }
-
-
-    // for z in 0..depth {
-    //     for y in 0..height {
-    //         for x in 0..width {
-    //             densities[x + y * width + z * width * height] = glam::Vec3::new(
-    //                 x as f32 - width as f32 / 2.0,
-    //                 y as f32 - height as f32 / 2.0,
-    //                 z as f32 - depth as f32 / 2.0,
-    //             ).length() - 32.0;
-    //             normals[x + y * width + z * width * height] = glam::Vec3::new(
-    //                 x as f32, y as f32, z as f32
-    //             ).normalize();
-    //         }
-    //     }
-    // }
-
     (densities, normals)
 }
 
+fn create_mesh(positions: Vec<[f32; 3]>, normals: Vec<[f32; 3]>) -> Mesh {
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
+        VertexAttributeValues::Float32x3(positions),
+    );
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(normals),
+    );
+    mesh
+}
+
+/// Setup scene, including generating marching cubes and dual contouring meshes
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -150,34 +153,24 @@ fn setup(
         ..Default::default()
     });
 
-    let width = 128;
-    let height = 128;
-    let depth = 128;
+    // Generate isosurface
 
-    let (densities, normals) = generate_density(width, height, depth);
+    let (densities, normals) = generate_density(FIELD_WIDTH, FIELD_HEIGHT, FIELD_DEPTH);
+
+    // Dual contouring
 
     let begin = Instant::now();
     let (mesh_positions, mesh_normals) = meshing::dual_contouring(
         &densities,
         &normals,
-        width,
-        height,
-        depth
+        FIELD_WIDTH,
+        FIELD_HEIGHT,
+        FIELD_DEPTH,
     );
     let end = Instant::now();
     println!("DC Time: {:?}", end - begin);
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    mesh.insert_attribute(
-        Mesh::ATTRIBUTE_POSITION,
-        VertexAttributeValues::Float32x3(mesh_positions),
-    );
-    mesh.insert_attribute(
-        Mesh::ATTRIBUTE_NORMAL,
-        VertexAttributeValues::Float32x3(mesh_normals),
-    );
-
-    let mesh = meshes.add(mesh);
+    let mesh = meshes.add(create_mesh(mesh_positions, mesh_normals));
     commands.spawn((
         PbrBundle {
             mesh,
@@ -187,35 +180,27 @@ fn setup(
                 reflectance: 0.0,
                 ..default()
             }),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
+            transform: Transform::from_translation(Vec3::new(50.0, 50.0, 50.0))
+                .with_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
         },
     ))
         .insert(Wireframe)
         .insert(GeneratedMesh);
 
+    // Marching cubes
 
     let begin = Instant::now();
     let (mesh_positions, mesh_normals) = meshing::marching_cubes(
         &densities,
-        width,
-        height,
-        depth
+        FIELD_WIDTH,
+        FIELD_HEIGHT,
+        FIELD_DEPTH,
     );
     let end = Instant::now();
     println!("MC Time: {:?}", end - begin);
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    mesh.insert_attribute(
-        Mesh::ATTRIBUTE_POSITION,
-        VertexAttributeValues::Float32x3(mesh_positions),
-    );
-    mesh.insert_attribute(
-        Mesh::ATTRIBUTE_NORMAL,
-        VertexAttributeValues::Float32x3(mesh_normals),
-    );
-
-    let mesh = meshes.add(mesh);
+    let mesh = meshes.add(create_mesh(mesh_positions, mesh_normals));
     commands.spawn((
         PbrBundle {
             mesh,
@@ -226,85 +211,11 @@ fn setup(
                 reflectance: 0.0,
                 ..default()
             }),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)).with_scale(Vec3::new(100.0, 100.0, 100.0)),
+            transform: Transform::from_translation(Vec3::new(50.0, 50.0, 50.0))
+                .with_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
         },
     ))
         .insert(Wireframe)
         .insert(GeneratedMesh);
-}
-
-fn keyboard_input(
-    keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Transform, &CameraController)>,
-    mut query2: Query<&mut Visibility, With<GeneratedMesh>>,
-) {
-    for (mut transform, _) in query.iter_mut() {
-
-        let rotation = transform.rotation;
-        
-        let forward = rotation.mul_vec3(-Vec3::Z).normalize();
-        let right = rotation.mul_vec3(Vec3::X).normalize();
-        let up = Vec3::Y;
-
-        let mut direction = Vec3::ZERO;
-
-        if keyboard_input.pressed(KeyCode::W) {
-            direction += forward;
-        }
-        if keyboard_input.pressed(KeyCode::S) {
-            direction -= forward;
-        }
-        if keyboard_input.pressed(KeyCode::A) {
-            direction -= right;
-        }
-        if keyboard_input.pressed(KeyCode::D) {
-            direction += right;
-        }
-        if keyboard_input.pressed(KeyCode::Q) {
-            direction -= up;
-        }
-        if keyboard_input.pressed(KeyCode::E) {
-            direction += up;
-        }
-        if keyboard_input.just_pressed(KeyCode::Tab) {
-            for mut visibility in query2.iter_mut() {
-                visibility.is_visible = !visibility.is_visible;
-            }
-        }
-
-        let mut velocity = 0.1;
-        if keyboard_input.pressed(KeyCode::LShift) {
-            velocity = 5.0;
-        }
-
-        direction = direction.normalize();
-
-        if !direction.is_nan() {
-            transform.translation += direction * velocity;
-        }
-    }
-}
-
-fn mouse_input(
-    mouse_input: Res<Input<MouseButton>>,
-    mut motion_evr: EventReader<MouseMotion>,
-    mut query: Query<(&mut Transform, &mut CameraController, )>,
-) {
-    for ev in motion_evr.iter() {
-        if mouse_input.pressed(MouseButton::Left) {
-            for (mut transform, mut controller) in query.iter_mut() {
-                controller.yaw -= ev.delta.x * 0.1;
-                controller.pitch -= ev.delta.y * 0.1;
-
-                controller.pitch = controller.pitch.clamp(-90.0, 90.0);
-
-                let yaw_radians = controller.yaw.to_radians();
-                let pitch_radians = controller.pitch.to_radians();
-
-                transform.rotation = Quat::from_axis_angle(Vec3::Y, yaw_radians)
-                    * Quat::from_axis_angle(Vec3::X, pitch_radians);
-            }
-        }
-    }
 }

@@ -79,7 +79,6 @@ pub fn dual_contouring(
     ];
 
     let mut vertices = vec![Vec3::ZERO; width * height * depth];
-    // Reuse the same buffer for each cell
     let mut candidates = Vec::<Vec4>::new();
 
     for z in 0..depth-1 {
