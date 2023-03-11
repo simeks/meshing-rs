@@ -12,6 +12,8 @@ fn solve3x3(m: &[[f32; 3]; 3], b: &[f32; 3]) -> Option<[f32; 3]> {
     }
 
     let mut x = [0.0_f32; 3];
+
+    #[allow(clippy::needless_range_loop)]
     for i in 0..3 {
         let mut m2 = *m;
         for j in 0..3 {
@@ -30,8 +32,8 @@ fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
     for i in 0..3 {
         for j in 0..3 {
             let mut sum = 0.0_f32;
-            for k in 0..candidates.len() {
-                sum += candidates[k][i] * candidates[k][j];
+            for c in candidates {
+                sum += c[i] * c[j];
             }
             At_A[i][j] = sum;
         }
@@ -39,13 +41,13 @@ fn qef_solve(candidates: &[Vec4]) -> Option<[f32; 3]> {
 
     for i in 0..3 {
         let mut sum = 0.0_f32;
-        for k in 0..candidates.len() {
-            sum += candidates[k][i] * candidates[k][3];
+        for c in candidates {
+            sum += c[i] * c[3];
         }
         At_b[i] = sum;
     }
 
-    return solve3x3(&At_A, &At_b);
+    solve3x3(&At_A, &At_b)
 }
 
 fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
@@ -54,8 +56,8 @@ fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
 
 /// Implements J Tao, et al., Dual Contouring of Hermite Data
 pub fn dual_contouring(
-    density: &Vec<f32>,
-    normal: &Vec<Vec3>,
+    density: &[f32],
+    normal: &[Vec3],
     width: usize,
     height: usize,
     depth: usize
@@ -189,13 +191,14 @@ pub fn dual_contouring(
                     inside[i] = density[index(x + corners[i].0, y + corners[i].1, z + corners[i].2, width, height)] <= 0.0;
                 }
 
+                #[allow(clippy::needless_range_loop)]
                 for face in 0..3 {
                     let e = far_edges[face];
                     if inside[e.0] == inside[e.1] {
                         continue;
                     }
 
-                    let v0 = Vec3::from(vertices[index(x, y, z, width, height)]);
+                    let v0 = vertices[index(x, y, z, width, height)];
                     let (v1, v2, v3) = match face {
                         0 => (
                             vertices[index(x, y,   z+1, width, height)],

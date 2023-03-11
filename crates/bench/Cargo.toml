@@ -1,9 +1,0 @@
-[package]
-name = "bench"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-dual_contouring = { path = "../dual_contouring" }
-glam = { version = "0.23" }
-

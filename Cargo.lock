@@ -182,14 +182,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
-name = "bench"
-version = "0.1.0"
-dependencies = [
- "dual_contouring",
- "glam 0.23.0",
-]
-
-[[package]]
 name = "bevy"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1256,13 +1248,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
-name = "dual_contouring"
-version = "0.1.0"
-dependencies = [
- "glam 0.23.0",
-]
-
-[[package]]
 name = "encase"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1642,8 +1627,8 @@ name = "hello"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "dual_contouring",
  "glam 0.23.0",
+ "meshing",
  "simdnoise",
 ]
 
@@ -1931,6 +1916,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "meshing"
+version = "0.1.0"
+dependencies = [
+ "glam 0.23.0",
 ]
 
 [[package]]

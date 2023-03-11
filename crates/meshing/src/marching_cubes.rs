@@ -1,4 +1,4 @@
-use glam::{Vec3, Vec4};
+use glam::Vec3;
 
 pub const EDGE_TABLE: &[u32; 256] = &[
     0x000, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
@@ -304,7 +304,7 @@ fn index(x: usize, y: usize, z: usize, width: usize, height: usize) -> usize {
 }
 
 pub fn marching_cubes(
-    density: &Vec<f32>,
+    density: &[f32],
     width: usize,
     height: usize,
     depth: usize,
